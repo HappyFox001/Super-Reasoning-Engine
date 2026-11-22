@@ -1,0 +1,47 @@
+{
+  "_comment": "Dense (non-sparse) vendor peaks. Bandwidth in bytes/s, FLOP/s for tensor ops in the named compute dtype. link_bw_Bps is per-direction aggregate per GPU. Values vary by SKU, power cap and clocks: verify against your datasheet and ALWAYS measure achievable ceilings (references/02).",
+  "H100-SXM5-80GB": {
+    "hbm_bytes": 80e9, "hbm_bw_Bps": 3.35e12,
+    "tensor_flops": {"bf16": 989.4e12, "fp16": 989.4e12, "fp8": 1978.9e12, "int8": 1978.9e12},
+    "link_bw_Bps": 450e9, "sms": 132, "l2_bytes": 50e6, "tdp_w": 700
+  },
+  "H100-PCIe-80GB": {
+    "hbm_bytes": 80e9, "hbm_bw_Bps": 2.0e12,
+    "tensor_flops": {"bf16": 756.5e12, "fp16": 756.5e12, "fp8": 1513e12, "int8": 1513e12},
+    "link_bw_Bps": 300e9, "sms": 114, "l2_bytes": 50e6, "tdp_w": 350
+  },
+  "H200-SXM-141GB": {
+    "hbm_bytes": 141e9, "hbm_bw_Bps": 4.8e12,
+    "tensor_flops": {"bf16": 989.4e12, "fp16": 989.4e12, "fp8": 1978.9e12, "int8": 1978.9e12},
+    "link_bw_Bps": 450e9, "sms": 132, "l2_bytes": 50e6, "tdp_w": 700
+  },
+  "B200-SXM-180GB": {
+    "hbm_bytes": 180e9, "hbm_bw_Bps": 8.0e12,
+    "tensor_flops": {"bf16": 2250e12, "fp16": 2250e12, "fp8": 4500e12, "int8": 4500e12, "fp4": 9000e12},
+    "link_bw_Bps": 900e9, "sms": 148, "l2_bytes": 126e6, "tdp_w": 1000,
+    "notes": "Per-GPU figures differ across HGX/DGX/GB200 SKUs; verify."
+  },
+  "A100-SXM4-80GB": {
+    "hbm_bytes": 80e9, "hbm_bw_Bps": 2.039e12,
+    "tensor_flops": {"bf16": 312e12, "fp16": 312e12, "int8": 624e12},
+    "link_bw_Bps": 300e9, "sms": 108, "l2_bytes": 40e6, "tdp_w": 400
+  },
+  "L40S-48GB": {
+    "hbm_bytes": 48e9, "hbm_bw_Bps": 864e9,
+    "tensor_flops": {"bf16": 362e12, "fp16": 362e12, "fp8": 733e12, "int8": 733e12},
+    "link_bw_Bps": 32e9, "sms": 142, "l2_bytes": 96e6, "tdp_w": 350,
+    "notes": "GDDR6, PCIe Gen4 only (no NVLink)."
+  },
+  "RTX-4090-24GB": {
+    "hbm_bytes": 24e9, "hbm_bw_Bps": 1008e9,
+    "tensor_flops": {"bf16": 165.2e12, "fp16": 165.2e12, "fp8": 330.3e12, "int8": 660.6e12},
+    "link_bw_Bps": 32e9, "sms": 128, "l2_bytes": 72e6, "tdp_w": 450,
+    "notes": "BF16/FP16 figure assumes FP32 accumulate (GeForce half-rate). Verify FP8 accumulate mode."
+  },
+  "MI300X-192GB": {
+    "hbm_bytes": 192e9, "hbm_bw_Bps": 5.3e12,
+    "tensor_flops": {"bf16": 1307.4e12, "fp16": 1307.4e12, "fp8": 2614.9e12, "int8": 2614.9e12},
+    "link_bw_Bps": 448e9, "sms": 304, "l2_bytes": 256e6, "tdp_w": 750,
+    "notes": "'sms' = compute units; l2_bytes here is Infinity Cache. Link = Infinity Fabric aggregate per direction (approx.)."
+  }
+}

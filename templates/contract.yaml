@@ -1,0 +1,48 @@
+# sre/contract.yaml: the frozen performance contract.
+# Changing anything here requires explicit user approval. Codex may never edit this file.
+
+model:
+  name: "<org/model-name>"
+  config: "<path/to/config.json>"
+  weights: "<path or hub id + revision>"
+
+precision:
+  weights: "bf16"            # allowed: bf16 | fp8_e4m3_per_channel | int4_awq_g128 | ...
+  kv_cache: "bf16"           # allowed: bf16 | fp8_e4m3
+  compute: "bf16"
+  allowed_upgrades: []       # precisions Codex MAY switch to, e.g. ["fp8_e4m3_per_channel"]
+
+quality:
+  reference: "hf-transformers-bf16"   # or "baseline-engine@<commit>"
+  teacher_forced_kl_max: 1.0e-3
+  top1_agreement_min: 0.99
+  task_eval: null            # e.g. {suite: "gsm8k-200", max_drop_pts: 0.5}
+
+hardware:
+  gpu: "H100-SXM5-80GB"
+  count: 1
+  interconnect: "NVLink4"
+  power_cap_w: 700
+  driver: "<version>"
+  toolkit: "<CUDA/ROCm version>"
+
+workload:
+  mode: "online"             # online | offline
+  prompt_len: {p50: 2048, p90: 6000}
+  gen_len: {p50: 512, p90: 1024}
+  sampling: "greedy"         # greedy | temperature/top_p values (must be preserved exactly)
+  slo:
+    tpot_ms_p99: 30
+    ttft_ms_p99: 800
+
+objective:
+  metric: "decode_tok_s"     # the scalar the loop maximizes (or minimizes with lower_is_better)
+  lower_is_better: false
+  target_frac_of_achievable_sol: 0.85
+
+budget:
+  max_iterations: 40
+  max_wall_hours: 24
+
+environment:
+  frozen: true               # no driver/toolkit/framework upgrades, no new dependencies

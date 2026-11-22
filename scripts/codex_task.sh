@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# Dispatch one optimization task to the local Codex CLI and record everything.
+#
+#   codex_task.sh --repo <engine-repo> --task <task.md>
+#                 [--model <m>] [--effort <low|medium|high|xhigh|ultra>]
+#                 [--sandbox read-only|workspace-write|danger-full-access]
+#                 [--runs-dir <dir>] [--timeout-min <minutes>] [--name <slug>]
+#
+# Env defaults: SRE_CODEX_MODEL, SRE_CODEX_EFFORT, SRE_CODEX_SANDBOX, SRE_CODEX_BIN.
+# Prints the run directory on the last line of stdout (machine-readable: "RUN_DIR=<path>").
+set -euo pipefail
+
+CODEX="${SRE_CODEX_BIN:-codex}"
+MODEL="${SRE_CODEX_MODEL:-}"
+EFFORT="${SRE_CODEX_EFFORT:-}"
+SANDBOX="${SRE_CODEX_SANDBOX:-workspace-write}"
+REPO="" TASK="" RUNS_DIR="" TIMEOUT_MIN="" NAME=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --repo) REPO="$2"; shift 2 ;;
+    --task) TASK="$2"; shift 2 ;;
+    --model) MODEL="$2"; shift 2 ;;
+    --effort) EFFORT="$2"; shift 2 ;;
+    --sandbox) SANDBOX="$2"; shift 2 ;;
+    --runs-dir) RUNS_DIR="$2"; shift 2 ;;
+    --timeout-min) TIMEOUT_MIN="$2"; shift 2 ;;
+    --name) NAME="$2"; shift 2 ;;
+    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    *) echo "unknown arg: $1" >&2; exit 64 ;;
+  esac
+done
+[ -n "$REPO" ] && [ -n "$TASK" ] || { echo "need --repo and --task" >&2; exit 64; }
+command -v "$CODEX" >/dev/null || { echo "codex CLI not found ($CODEX)" >&2; exit 69; }
+REPO="$(cd "$REPO" && pwd)"
+[ -f "$TASK" ] || { echo "task file not found: $TASK" >&2; exit 66; }
+if [ "$SANDBOX" = "danger-full-access" ] && [ "${SRE_ALLOW_FULL_ACCESS:-}" != "1" ]; then
+  echo "danger-full-access requires SRE_ALLOW_FULL_ACCESS=1 (explicit user approval)" >&2; exit 77
+fi
+
+[ -n "$NAME" ] || NAME="$(basename "$TASK" .md)"
+RUNS_DIR="${RUNS_DIR:-$REPO/sre/runs}"
+RUN="$RUNS_DIR/$(date +%Y%m%d-%H%M%S)-$NAME"
+mkdir -p "$RUN"
+cp "$TASK" "$RUN/task.md"
+
+BASE="$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo none)"
+if [ "$BASE" != "none" ] && [ -n "$(git -C "$REPO" status --porcelain --untracked-files=no)" ]; then
+  echo "warning: working tree not clean at dispatch; diff attribution will include pre-existing changes" >&2
+fi
+
+ARGS=(exec --json -C "$REPO" -s "$SANDBOX" --skip-git-repo-check -o "$RUN/last_message.md")
+[ -n "$MODEL" ] && ARGS+=(-m "$MODEL")
+[ -n "$EFFORT" ] && ARGS+=(-c "model_reasoning_effort=\"$EFFORT\"")
+ARGS+=(-)
+
+TO=()
+if [ -n "$TIMEOUT_MIN" ]; then
+  if command -v timeout >/dev/null; then TO=(timeout "$((TIMEOUT_MIN * 60))");
+  elif command -v gtimeout >/dev/null; then TO=(gtimeout "$((TIMEOUT_MIN * 60))");
+  else echo "warning: no timeout/gtimeout binary; running without a time cap" >&2; fi
+fi
+
+START="$(date +%s)"
+set +e
+"${TO[@]+"${TO[@]}"}" "$CODEX" "${ARGS[@]}" < "$RUN/task.md" > "$RUN/events.jsonl" 2> "$RUN/stderr.log"
+RC=$?
+set -e
+END="$(date +%s)"
+
+python3 - "$RUN/events.jsonl" "$RUN/session_id" <<'PY'
+import json, sys
+sid = None
+def walk(o):
+    global sid
+    if sid: return
+    if isinstance(o, dict):
+        for k in ("thread_id", "session_id", "conversation_id"):
+            if isinstance(o.get(k), str):
+                sid = o[k]; return
+        for v in o.values(): walk(v)
+    elif isinstance(o, list):
+        for v in o: walk(v)
+for line in open(sys.argv[1], errors="replace"):
+    try: walk(json.loads(line))
+    except Exception: pass
+    if sid: break
+open(sys.argv[2], "w").write((sid or "") + "\n")
+PY
+
+if [ "$BASE" != "none" ]; then
+  git -C "$REPO" add -N . >/dev/null 2>&1 || true   # include new files in the diff
+  git -C "$REPO" diff "$BASE" > "$RUN/diff.patch" || true
+  git -C "$REPO" diff --stat "$BASE" > "$RUN/diffstat.txt" || true
+fi
+
+cat > "$RUN/meta.json" <<JSON
+{"repo": "$REPO", "base_commit": "$BASE", "model": "${MODEL:-config-default}", "effort": "${EFFORT:-config-default}",
+ "sandbox": "$SANDBOX", "exit_code": $RC, "start": $START, "end": $END, "duration_s": $((END - START)),
+ "session_id": "$(tr -d '\n' < "$RUN/session_id")"}
+JSON
+
+echo "codex exit=$RC  duration=$((END - START))s  session=$(cat "$RUN/session_id")"
+[ -f "$RUN/diffstat.txt" ] && tail -n 1 "$RUN/diffstat.txt" || true
+[ $RC -eq 124 ] && echo "TIMEOUT: task too large; split it" >&2
+echo "RUN_DIR=$RUN"
+exit $RC
