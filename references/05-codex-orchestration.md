@@ -27,14 +27,14 @@ grep -E '^model|reasoning' ~/.codex/config.toml
 
 ```bash
 scripts/codex_task.sh --repo <engine-repo> --task <task.md> \
-  [--model <m>] [--effort <e>] [--sandbox workspace-write|danger-full-access] \
+  [--model <m>] [--effort <e>] [--sandbox danger-full-access|workspace-write|read-only] \
   [--runs-dir <engine-repo>/sre/runs] [--timeout-min 90]
 ```
 
 It runs:
 
 ```bash
-codex exec --json -C <repo> -s <sandbox> --skip-git-repo-check \
+codex exec --json -C <repo> --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check \   # or -s <mode>
   [-m <model>] [-c model_reasoning_effort=<e>] \
   -o <run>/last_message.md - < <task.md>   > <run>/events.jsonl
 ```
@@ -89,14 +89,24 @@ excerpt or ledger rows instead of describing them.
 
 ## 4. Sandbox and GPU access
 
-- `workspace-write` (default) lets Codex edit the repo and run commands without network.
-  On some Linux setups the sandbox may block GPU device access or the compiler cache; detect
-  this from the first task's events (errors opening `/dev/nvidia*`, `CUDA error: no CUDA-
-  capable device`).
-- Options if GPU access is blocked: (a) Codex builds and runs CPU-side checks only, and *you*
-  run all GPU commands; (b) use `danger-full-access` only on a dedicated, disposable machine
-  and only with the user's explicit approval. Never choose (b) on your own.
-- Network is off by default. Codex must not need it: vendor any dependency ahead of time.
+- **Default: no sandbox** (`danger-full-access` → `--dangerously-bypass-approvals-and-sandbox`,
+  also on resume). Reason: an optimization loop is useless if Codex cannot run what it writes.
+  Codex's sandboxes hide the accelerator: on macOS the seatbelt profile shows **0 Metal devices**
+  (observed in practice: Codex then ships uncompiled, untimed kernels); on Linux the sandbox may
+  block `/dev/nvidia*` or the compiler cache.
+- Compensating controls (mandatory with the default):
+  1. Codex works on a dedicated branch (`git checkout -b sre-opt`), never on main.
+  2. `guard.py` after every run; protected files make the bench/check tamper-evident.
+  3. The orchestrator runs the authoritative check and benchmark itself, every iteration.
+  4. Tell the user once, at loop start, that Codex runs unsandboxed in that repository.
+- Use `--sandbox workspace-write` when the user asks, on shared machines, or for tasks that do not
+  need the accelerator (docs, CPU-only refactors). Then Codex builds and you run every GPU
+  command, feeding results back with `codex_correct.sh`.
+- **A session's sandbox is fixed at creation.** Resuming a sandboxed session with the bypass flag
+  does not lift the sandbox (observed: still 0 Metal devices). To change mode, start a new session
+  and embed the previous session's lessons in the task; `codex_correct.sh` refuses the mismatch.
+- Network is not needed: vendor dependencies ahead of time; installing packages stays forbidden
+  by AGENTS.md regardless of sandbox mode.
 
 ## 5. Cadence for long runs
 

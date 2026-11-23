@@ -34,7 +34,20 @@ cp "$MSG" "$OUT/message.md"
 [ $N -ge 3 ] && echo "note: this is follow-up #$N on one task; escalation ladder says revert + fresh session" >&2
 
 BASE="$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo none)"
-ARGS=(exec resume "$SID" --json -o "$OUT/last_message.md")
+ORIG_SANDBOX="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("sandbox","danger-full-access"))' "$RUN/meta.json")"
+SANDBOX="${SRE_CODEX_SANDBOX:-$ORIG_SANDBOX}"
+if [ "$SANDBOX" != "$ORIG_SANDBOX" ]; then
+  # Observed: a resumed session keeps the sandbox it was created with (e.g. still 0 Metal devices).
+  echo "session was created with sandbox=$ORIG_SANDBOX; resume cannot change it to $SANDBOX." >&2
+  echo "Start a new session with codex_task.sh --sandbox $SANDBOX and embed the lessons in the task." >&2
+  exit 78
+fi
+ARGS=(exec resume "$SID" --json --skip-git-repo-check -o "$OUT/last_message.md")
+if [ "$SANDBOX" = "danger-full-access" ]; then
+  ARGS+=(--dangerously-bypass-approvals-and-sandbox)
+else
+  ARGS+=(-c "sandbox_mode=\"$SANDBOX\"")
+fi
 [ -n "$MODEL" ] && ARGS+=(-m "$MODEL")
 [ -n "$EFFORT" ] && ARGS+=(-c "model_reasoning_effort=\"$EFFORT\"")
 ARGS+=(-)

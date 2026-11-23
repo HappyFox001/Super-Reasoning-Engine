@@ -180,8 +180,16 @@ Read `references/05-codex-orchestration.md` before the first dispatch, and
 
 ```bash
 scripts/codex_task.sh --repo /path/to/engine --task sre/tasks/007-fuse-rmsnorm-qkv.md \
-  [--model "$SRE_CODEX_MODEL"] [--effort high] [--sandbox workspace-write]
+  [--model "$SRE_CODEX_MODEL"] [--effort high] [--sandbox danger-full-access]
 ```
+
+**Codex runs without a sandbox by default** (`danger-full-access`, i.e.
+`--dangerously-bypass-approvals-and-sandbox`). Codex must compile and time kernels on the GPU
+itself to iterate, and Codex's sandboxes hide the GPU (macOS seatbelt shows 0 Metal devices;
+Linux sandboxes can block `/dev/nvidia*`). Compensating controls are mandatory: work only on a
+dedicated branch, keep the guard + authoritative measurement after every task, and tell the user
+at the start of the loop that Codex runs unsandboxed in that repo. Use `--sandbox workspace-write`
+(or `SRE_CODEX_SANDBOX=workspace-write`) when the user asks for it or the machine is shared.
 
 The wrapper runs `codex exec --json`, stores the event stream, the final message and the
 session id under `sre/runs/<timestamp>-<task>/`, and prints the session id. Follow-ups and

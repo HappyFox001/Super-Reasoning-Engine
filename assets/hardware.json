@@ -1,47 +1,145 @@
 {
   "_comment": "Dense (non-sparse) vendor peaks. Bandwidth in bytes/s, FLOP/s for tensor ops in the named compute dtype. link_bw_Bps is per-direction aggregate per GPU. Values vary by SKU, power cap and clocks: verify against your datasheet and ALWAYS measure achievable ceilings (references/02).",
   "H100-SXM5-80GB": {
-    "hbm_bytes": 80e9, "hbm_bw_Bps": 3.35e12,
-    "tensor_flops": {"bf16": 989.4e12, "fp16": 989.4e12, "fp8": 1978.9e12, "int8": 1978.9e12},
-    "link_bw_Bps": 450e9, "sms": 132, "l2_bytes": 50e6, "tdp_w": 700
+    "hbm_bytes": 80000000000.0,
+    "hbm_bw_Bps": 3350000000000.0,
+    "tensor_flops": {
+      "bf16": 989400000000000.0,
+      "fp16": 989400000000000.0,
+      "fp8": 1978900000000000.0,
+      "int8": 1978900000000000.0
+    },
+    "link_bw_Bps": 450000000000.0,
+    "sms": 132,
+    "l2_bytes": 50000000.0,
+    "tdp_w": 700
   },
   "H100-PCIe-80GB": {
-    "hbm_bytes": 80e9, "hbm_bw_Bps": 2.0e12,
-    "tensor_flops": {"bf16": 756.5e12, "fp16": 756.5e12, "fp8": 1513e12, "int8": 1513e12},
-    "link_bw_Bps": 300e9, "sms": 114, "l2_bytes": 50e6, "tdp_w": 350
+    "hbm_bytes": 80000000000.0,
+    "hbm_bw_Bps": 2000000000000.0,
+    "tensor_flops": {
+      "bf16": 756500000000000.0,
+      "fp16": 756500000000000.0,
+      "fp8": 1513000000000000.0,
+      "int8": 1513000000000000.0
+    },
+    "link_bw_Bps": 300000000000.0,
+    "sms": 114,
+    "l2_bytes": 50000000.0,
+    "tdp_w": 350
   },
   "H200-SXM-141GB": {
-    "hbm_bytes": 141e9, "hbm_bw_Bps": 4.8e12,
-    "tensor_flops": {"bf16": 989.4e12, "fp16": 989.4e12, "fp8": 1978.9e12, "int8": 1978.9e12},
-    "link_bw_Bps": 450e9, "sms": 132, "l2_bytes": 50e6, "tdp_w": 700
+    "hbm_bytes": 141000000000.0,
+    "hbm_bw_Bps": 4800000000000.0,
+    "tensor_flops": {
+      "bf16": 989400000000000.0,
+      "fp16": 989400000000000.0,
+      "fp8": 1978900000000000.0,
+      "int8": 1978900000000000.0
+    },
+    "link_bw_Bps": 450000000000.0,
+    "sms": 132,
+    "l2_bytes": 50000000.0,
+    "tdp_w": 700
   },
   "B200-SXM-180GB": {
-    "hbm_bytes": 180e9, "hbm_bw_Bps": 8.0e12,
-    "tensor_flops": {"bf16": 2250e12, "fp16": 2250e12, "fp8": 4500e12, "int8": 4500e12, "fp4": 9000e12},
-    "link_bw_Bps": 900e9, "sms": 148, "l2_bytes": 126e6, "tdp_w": 1000,
+    "hbm_bytes": 180000000000.0,
+    "hbm_bw_Bps": 8000000000000.0,
+    "tensor_flops": {
+      "bf16": 2250000000000000.0,
+      "fp16": 2250000000000000.0,
+      "fp8": 4500000000000000.0,
+      "int8": 4500000000000000.0,
+      "fp4": 9000000000000000.0
+    },
+    "link_bw_Bps": 900000000000.0,
+    "sms": 148,
+    "l2_bytes": 126000000.0,
+    "tdp_w": 1000,
     "notes": "Per-GPU figures differ across HGX/DGX/GB200 SKUs; verify."
   },
   "A100-SXM4-80GB": {
-    "hbm_bytes": 80e9, "hbm_bw_Bps": 2.039e12,
-    "tensor_flops": {"bf16": 312e12, "fp16": 312e12, "int8": 624e12},
-    "link_bw_Bps": 300e9, "sms": 108, "l2_bytes": 40e6, "tdp_w": 400
+    "hbm_bytes": 80000000000.0,
+    "hbm_bw_Bps": 2039000000000.0,
+    "tensor_flops": {
+      "bf16": 312000000000000.0,
+      "fp16": 312000000000000.0,
+      "int8": 624000000000000.0
+    },
+    "link_bw_Bps": 300000000000.0,
+    "sms": 108,
+    "l2_bytes": 40000000.0,
+    "tdp_w": 400
   },
   "L40S-48GB": {
-    "hbm_bytes": 48e9, "hbm_bw_Bps": 864e9,
-    "tensor_flops": {"bf16": 362e12, "fp16": 362e12, "fp8": 733e12, "int8": 733e12},
-    "link_bw_Bps": 32e9, "sms": 142, "l2_bytes": 96e6, "tdp_w": 350,
+    "hbm_bytes": 48000000000.0,
+    "hbm_bw_Bps": 864000000000.0,
+    "tensor_flops": {
+      "bf16": 362000000000000.0,
+      "fp16": 362000000000000.0,
+      "fp8": 733000000000000.0,
+      "int8": 733000000000000.0
+    },
+    "link_bw_Bps": 32000000000.0,
+    "sms": 142,
+    "l2_bytes": 96000000.0,
+    "tdp_w": 350,
     "notes": "GDDR6, PCIe Gen4 only (no NVLink)."
   },
   "RTX-4090-24GB": {
-    "hbm_bytes": 24e9, "hbm_bw_Bps": 1008e9,
-    "tensor_flops": {"bf16": 165.2e12, "fp16": 165.2e12, "fp8": 330.3e12, "int8": 660.6e12},
-    "link_bw_Bps": 32e9, "sms": 128, "l2_bytes": 72e6, "tdp_w": 450,
+    "hbm_bytes": 24000000000.0,
+    "hbm_bw_Bps": 1008000000000.0,
+    "tensor_flops": {
+      "bf16": 165200000000000.0,
+      "fp16": 165200000000000.0,
+      "fp8": 330300000000000.0,
+      "int8": 660600000000000.0
+    },
+    "link_bw_Bps": 32000000000.0,
+    "sms": 128,
+    "l2_bytes": 72000000.0,
+    "tdp_w": 450,
     "notes": "BF16/FP16 figure assumes FP32 accumulate (GeForce half-rate). Verify FP8 accumulate mode."
   },
   "MI300X-192GB": {
-    "hbm_bytes": 192e9, "hbm_bw_Bps": 5.3e12,
-    "tensor_flops": {"bf16": 1307.4e12, "fp16": 1307.4e12, "fp8": 2614.9e12, "int8": 2614.9e12},
-    "link_bw_Bps": 448e9, "sms": 304, "l2_bytes": 256e6, "tdp_w": 750,
+    "hbm_bytes": 192000000000.0,
+    "hbm_bw_Bps": 5300000000000.0,
+    "tensor_flops": {
+      "bf16": 1307400000000000.0,
+      "fp16": 1307400000000000.0,
+      "fp8": 2614900000000000.0,
+      "int8": 2614900000000000.0
+    },
+    "link_bw_Bps": 448000000000.0,
+    "sms": 304,
+    "l2_bytes": 256000000.0,
+    "tdp_w": 750,
     "notes": "'sms' = compute units; l2_bytes here is Infinity Cache. Link = Infinity Fabric aggregate per direction (approx.)."
+  },
+  "Apple-M2-10GPU-24GB": {
+    "hbm_bytes": 24000000000.0,
+    "hbm_bw_Bps": 100000000000.0,
+    "tensor_flops": {
+      "fp16": 3600000000000.0,
+      "bf16": 3600000000000.0,
+      "fp32": 3600000000000.0
+    },
+    "link_bw_Bps": 0,
+    "sms": 10,
+    "tdp_w": 20,
+    "notes": "Unified LPDDR5. 'sms' = GPU cores. FP16 ALU rate ~= FP32 on M1/M2; MLX matmul measured ~3.3 TFLOP/s fp16 on a 10-core M2."
+  },
+  "Apple-M3-Max-40GPU": {
+    "hbm_bytes": 128000000000.0,
+    "hbm_bw_Bps": 400000000000.0,
+    "tensor_flops": {
+      "fp16": 16400000000000.0,
+      "bf16": 16400000000000.0,
+      "fp32": 16400000000000.0
+    },
+    "link_bw_Bps": 0,
+    "sms": 40,
+    "tdp_w": 90,
+    "notes": "Unified LPDDR5; 300 GB/s on 30-GPU variant. Verify FLOP figure by measurement."
   }
 }

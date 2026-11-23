@@ -87,7 +87,7 @@ class Model:
         return self.V * self.D
 
     def lm_head_params(self) -> float:
-        return self.V * self.D
+        return 0 if getattr(self, "encoder", False) else self.V * self.D
 
     def total_params(self) -> float:
         p = self.L * self.attn_params() + self.dense_layers * self.dense_mlp_params()
@@ -215,6 +215,50 @@ def slo_batch(m: Model, hw: dict, a, ctx: float, cap: int) -> int:
     return best
 
 
+def encoder_bound(m: Model, hw: dict, a, B: int, S: int):
+    """One bidirectional forward over B sequences of length S (padded)."""
+    P = hw["tensor_flops"][a.compute_dtype] * a.tp
+    BW = hw["hbm_bw_Bps"] * a.tp
+    n_tok = m.active_params() + a.extra_params
+    attn = 2 * m.attn_flops_prefill(S)  # bidirectional: full S x S (or S x window), not causal half
+    flops = B * (2 * n_tok * S + attn)
+    w_bytes = (m.active_params() + a.extra_params) * a.weight_bits / 8 + B * S * m.D * a.weight_bits / 8
+    act_bytes = 2 * m.L * B * S * m.D * a.act_bits / 8 * 4  # ~4 activation round-trips per layer, unfused
+    t_c, t_m = flops / P, w_bytes / BW
+    t_m_act = (w_bytes + act_bytes) / BW
+    t = max(t_c, t_m)
+    return {"B": B, "S": S, "flops": flops, "weight_bytes": w_bytes, "t_compute_s": t_c, "t_mem_s": t_m,
+            "t_mem_unfused_s": t_m_act, "t_s": t, "seq_s": B / t, "tok_s": B * S / t,
+            "bound": "compute" if t_c > t_m else "memory"}
+
+
+def encoder_main(m: Model, a):
+    theo_hw, ach_hw = load_hw(a.gpu, a.hw_file, a.measured)
+    hws = [("theoretical", theo_hw)] + ([("achievable", ach_hw)] if a.measured else [])
+    print(f"== Encoder: D={m.D} L={m.L} H={m.Hq} I={m.I} V={m.V} window={m.window}  "
+          f"token-wise params {fmt(m.active_params() + a.extra_params)} (embedding rows gathered, not read)")
+    lengths = [int(x) for x in str(a.prompt_len).split(",")]
+    batches = [int(b) for b in a.batch_sweep.split(",") if b]
+    res = {}
+    for name, hw in hws:
+        P, BW = hw["tensor_flops"][a.compute_dtype], hw["hbm_bw_Bps"]
+        print(f"\n[{name}] BW {fmt(BW, 'B/s')}  P[{a.compute_dtype}] {fmt(P, 'FLOP/s')}  ridge {P / BW:.0f} FLOP/B")
+        print(f"{'B':>5} {'S':>6} {'bound':>8} {'GFLOP':>9} {'t_cmp ms':>9} {'t_mem ms':>9} {'SOL ms':>8} {'seq/s':>9}")
+        rows = []
+        for S in lengths:
+            for B in batches:
+                r = encoder_bound(m, hw, a, B, S)
+                rows.append(r)
+                print(f"{B:>5} {S:>6} {r['bound']:>8} {r['flops'] / 1e9:>9.1f} {r['t_compute_s'] * 1e3:>9.3f} "
+                      f"{r['t_mem_s'] * 1e3:>9.3f} {r['t_s'] * 1e3:>8.3f} {r['seq_s']:>9.1f}")
+        res[name] = rows
+    print("\nNote: SOL excludes per-op dispatch/launch cost; add --fixed-us style overhead from measured dispatch.")
+    if a.json:
+        with open(a.json, "w") as f:
+            json.dump({"args": vars(a), "encoder": res}, f, indent=2)
+        print(f"wrote {a.json}")
+
+
 # ---------------------------------------------------------------------------- report
 def fmt(x, unit=""):
     for div, suf in ((1e15, "P"), (1e12, "T"), (1e9, "G"), (1e6, "M"), (1e3, "k")):
@@ -259,17 +303,26 @@ def main():
     ap.add_argument("--tp", type=int, default=1)
     ap.add_argument("--allreduce-latency-us", type=float, default=8.0)
     ap.add_argument("--fixed-us", type=float, default=0.0, help="per-step fixed overhead to include (0 = pure SOL)")
-    ap.add_argument("--prompt-len", type=int, default=2048)
+    ap.add_argument("--prompt-len", default="2048", help="int; comma list allowed with --encoder")
     ap.add_argument("--gen-len", type=int, default=512)
     ap.add_argument("--batch-sweep", default="1,8,32,64,128,256")
     ap.add_argument("--tpot-slo-ms", type=float, default=0.0)
     ap.add_argument("--mem-util", type=float, default=0.9)
     ap.add_argument("--workspace-gb", type=float, default=2.0, help="per-GPU activation/workspace reserve")
     ap.add_argument("--json", help="write full results here")
+    ap.add_argument("--encoder", action="store_true",
+                    help="bidirectional encoder (BERT-style): one forward pass, no LM head, no KV cache")
+    ap.add_argument("--extra-params", type=float, default=0.0,
+                    help="token-wise params outside the backbone (task heads), counted per token")
     a = ap.parse_args()
+    if not a.encoder:
+        a.prompt_len = int(a.prompt_len)
 
     with open(a.model) as f:
         m = Model(json.load(f))
+    m.encoder = a.encoder
+    if a.encoder:
+        return encoder_main(m, a)
     theo_hw, ach_hw = load_hw(a.gpu, a.hw_file, a.measured)
     if a.compute_dtype not in theo_hw["tensor_flops"]:
         sys.exit(f"{a.gpu} has no tensor_flops entry for {a.compute_dtype}")

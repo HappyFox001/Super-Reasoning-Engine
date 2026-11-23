@@ -58,6 +58,10 @@ git clone https://github.com/HappyFox001/Super-Reasoning-Engine.git .claude/skil
 | git | guard, revert and attribution |
 | CUDA/ROCm toolchain + profiler on the GPU host | building and measuring the engine |
 
+Codex runs **without a sandbox by default** so it can compile and time GPU kernels itself (Codex's
+sandboxes hide the GPU). SRE compensates with a dedicated branch, a diff guard and independent
+measurement every iteration. Set `SRE_CODEX_SANDBOX=workspace-write` to keep the sandbox.
+
 Pick the Codex model with `SRE_CODEX_MODEL` (for example an Astra-class model such as
 `gpt-6.2-astra`). If it isn't set, SRE uses the model in your `~/.codex/config.toml`.
 
