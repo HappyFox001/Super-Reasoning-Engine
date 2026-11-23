@@ -7,7 +7,8 @@ Checks the working tree of a repository against a base commit for:
   - oversized diffs
   - red-flag patterns in added lines (benchmark gaming, contract violations, env changes)
 
-Exit code 0 = clean, 1 = violations (details on stdout, JSON with --json).
+Exit code 0 = clean or needs review, 1 = hard violation.
+Inspect the verdict in stdout or use --json for a machine-readable result.
 
   guard.py --repo . --base HEAD --protect-file sre/protected.txt \
            --allow 'csrc/kernels/*' --allow 'engine/layers/*.py' --max-lines 600
@@ -15,8 +16,11 @@ Exit code 0 = clean, 1 = violations (details on stdout, JSON with --json).
 from __future__ import annotations
 
 import argparse
+import ast
 import fnmatch
 import json
+import os
+from pathlib import Path
 import re
 import subprocess
 import sys
@@ -36,38 +40,69 @@ RED_FLAGS = [
 
 
 def git(repo, *args):
-    return subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, check=True).stdout
+    return subprocess.run(
+        ["git", "--no-optional-locks", "-C", repo, *args], capture_output=True, check=True,
+    ).stdout.decode("utf-8", errors="surrogateescape")
 
 
-def changed_files(repo, base):
-    files = set(l for l in git(repo, "diff", "--name-only", base).splitlines() if l)
-    for l in git(repo, "status", "--porcelain").splitlines():
-        files.add(l[3:].split(" -> ")[-1])
-    return sorted(files)
+def diff(repo, base, *args):
+    return git(repo, "-c", "core.quotePath=true", "diff", "--no-ext-diff", "--no-textconv",
+               "--no-color", "--find-renames", *args, base, "--")
 
 
-def numstat(repo, base):
+def diff_stats(repo, base, *args):
+    """Read both endpoints of tracked renames without relying on display quoting."""
+    entries = iter(diff(repo, base, "--numstat", "-z", *args).split("\0")[:-1])
+    files = set()
     total = 0
-    for l in git(repo, "diff", "--numstat", base).splitlines():
-        a, d, _ = l.split("\t", 2)
-        if a != "-":
-            total += int(a) + int(d)
-    return total
+    for entry in entries:
+        added, deleted, path = entry.split("\t", 2)
+        if path:
+            files.add(path)
+        else:
+            files.update((next(entries), next(entries)))
+        if added != "-":
+            total += int(added) + int(deleted)
+    return files, total
 
 
-def added_lines(repo, base):
-    out, cur = [], None
-    for l in git(repo, "diff", "-U0", base).splitlines():
-        if l.startswith("+++ "):
-            cur = l[6:] if l.startswith("+++ b/") else l[4:]
-        elif l.startswith("+") and not l.startswith("+++"):
-            out.append((cur, l[1:]))
-    return out
+def tracked_additions(repo, base):
+    path = None
+    in_hunk = False
+    for line in diff(repo, base, "-U0", "--src-prefix=a/", "--dst-prefix=b/",
+                     "--output-indicator-new=+", "--output-indicator-old=-",
+                     "--output-indicator-context= ").split("\n"):
+        if line.startswith("diff --git "):
+            path = None
+            in_hunk = False
+        elif line.startswith("@@ "):
+            in_hunk = True
+        elif in_hunk and line.startswith("+"):
+            yield path, line[1:]
+        elif not in_hunk and line.startswith("+++ "):
+            name = line[4:].removesuffix("\t")
+            if name.startswith('"'):
+                name = ast.literal_eval("b" + name).decode("utf-8", errors="surrogateescape")
+            path = name.removeprefix("b/")
+
+
+def untracked_lines(repo, path):
+    file = Path(repo) / path
+    if file.is_symlink():
+        yield os.readlink(file)
+    elif file.is_file():
+        with file.open("rb") as contents:
+            # Git's ordinary diff also treats files with an early NUL as binary.
+            if b"\0" in contents.read(8000):
+                return
+            contents.seek(0)
+            for line in contents:
+                yield line.decode("utf-8", errors="surrogateescape").removesuffix("\n")
 
 
 def match_any(path, globs):
     for g in globs:
-        if fnmatch.fnmatch(path, g):
+        if fnmatch.fnmatchcase(path, g):
             return True
         if g.endswith(("/**", "/")) and path.startswith(g.rstrip("*").rstrip("/") + "/"):
             return True
@@ -88,20 +123,34 @@ def main():
 
     protect = list(a.protect)
     if a.protect_file:
-        with open(a.protect_file) as f:
-            protect += [l.strip() for l in f if l.strip() and not l.startswith("#")]
+        with open(a.protect_file, encoding="utf-8") as f:
+            patterns = map(str.strip, f)
+            protect += [pattern for pattern in patterns if pattern and not pattern.startswith("#")]
     protect += ["AGENTS.md", "sre/contract.yaml", "sre/protected.txt"]
 
-    files = changed_files(a.repo, a.base)
+    # Validate the base as a commit before passing it to diff as an argument.
+    base = git(a.repo, "rev-parse", "--verify", "--end-of-options", a.base + "^{commit}").strip()
+    tracked, total = diff_stats(a.repo, base)
+    staged, _ = diff_stats(a.repo, base, "--cached")
+    untracked = git(a.repo, "ls-files", "-z", "--others", "--exclude-standard").split("\0")[:-1]
+    log_paths = {p for p in untracked if p.startswith("sre/runs/")}
+    files = sorted(tracked | staged | set(untracked))
     v = {"protected": [p for p in files if match_any(p, protect)],
-         "out_of_scope": [p for p in files if a.allow and not match_any(p, a.allow) and not p.startswith("sre/runs/")],
-         "diff_lines": numstat(a.repo, a.base), "red_flags": []}
-    for path, line in added_lines(a.repo, a.base):
-        for pat, label in RED_FLAGS:
-            if label in a.ignore_flag:
-                continue
-            if re.search(pat, line, re.I):
+         "out_of_scope": [p for p in files if a.allow and p not in log_paths and not match_any(p, a.allow)],
+         "diff_lines": total, "red_flags": []}
+    patterns = [(re.compile(pat, re.I), label) for pat, label in RED_FLAGS if label not in a.ignore_flag]
+
+    def check_line(path, line):
+        for pattern, label in patterns:
+            if pattern.search(line):
                 v["red_flags"].append({"file": path, "flag": label, "line": line.strip()[:160]})
+
+    for path, line in tracked_additions(a.repo, base):
+        check_line(path, line)
+    for path in sorted(set(untracked) - log_paths):
+        for line in untracked_lines(a.repo, path):
+            v["diff_lines"] += 1
+            check_line(path, line)
     too_big = a.max_lines and v["diff_lines"] > a.max_lines
     hard = bool(v["protected"] or v["out_of_scope"] or too_big)
     v["verdict"] = "VIOLATION" if hard else ("REVIEW" if v["red_flags"] else "CLEAN")
@@ -123,4 +172,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except subprocess.CalledProcessError as exc:
+        sys.exit(exc.stderr.decode("utf-8", errors="replace").strip() or str(exc))
+    except OSError as exc:
+        sys.exit(str(exc))

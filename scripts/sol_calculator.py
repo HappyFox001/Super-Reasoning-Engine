@@ -365,12 +365,11 @@ def main():
         print(f"TP all-reduce floor per step at B=1: {comm_time(m, theo_hw, a, 1) * 1e3:.3f} ms")
     if "slo_batch" in theo:
         print(f"Max batch meeting TPOT <= {a.tpot_slo_ms} ms: {theo['slo_batch']}")
-    op = theo.get("operating_point")
-    if op:
-        msg = f"Operating point B={op['B']}: {op['bound']}-bound, TPOT {op['tpot_ms']:.2f} ms, {op['tok_s']:.0f} tok/s (theoretical)"
-        if ach and ach.get("operating_point"):
-            msg += f", {ach['operating_point']['tok_s']:.0f} tok/s (achievable)"
-        print(msg)
+    for kind, analysis in (("theoretical", theo), ("achievable", ach)):
+        op = analysis.get("operating_point") if analysis else None
+        if op:
+            print(f"Operating point B={op['B']}: {op['bound']}-bound, "
+                  f"TPOT {op['tpot_ms']:.2f} ms, {op['tok_s']:.0f} tok/s ({kind})")
 
     if a.json:
         res = {"args": vars(a), "model": {"total_params": m.total_params(), "active_params": m.active_params(),

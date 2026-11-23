@@ -3,7 +3,9 @@
 ## Current
 - Best accepted: <value> = <X>% of achievable SOL @ commit <sha>
 - Target: <Y>% · Iteration <n> / budget <N>
-- Active Codex run: <sre/runs/...> (session <id>) | none
+- Active worker: <native agent or CLI session id> | none
+- Candidate: <absolute worktree path> @ base <sha>
+- Evidence: <sre/runs/...>
 
 ## Gap waterfall (latest)
 | Term | ms/step | % of step | Max payoff |

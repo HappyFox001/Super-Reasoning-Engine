@@ -1,20 +1,29 @@
 ---
 name: super-reasoning-engine
-description: Build an inference engine for a specific model on a specific GPU that approaches the physical speed-of-light. Use when the user wants to maximize LLM/transformer inference throughput or minimize latency on given hardware, derive the theoretical performance ceiling of a model-hardware-workload triple (roofline, memory bandwidth, information-theoretic bytes-per-token bounds, Little's law), or drive the local Codex CLI through a long, supervised optimization loop that keeps closing the gap to that ceiling. Triggers include "optimize inference", "max tokens/s", "speed of light", "roofline", "write a custom inference engine", "make decode faster on H100/B200/MI300X/4090", "use codex to optimize kernels".
+description: Estimate the performance ceiling of LLM inference for a model, accelerator, and workload, or supervise measured kernel and serving optimizations with Codex. Use for inference roofline or speed-of-light estimates, prefill/decode throughput, TTFT/TPOT, GPU profiling, and experiments with frozen quality and latency constraints.
 license: MIT
 ---
 
 # Super Reasoning Engine
 
-You are the **principal performance engineer**. Codex (the local `codex` CLI) is your
-**implementation engineer**. Your job is to:
+You are the **supervisor**. Assign implementation to a separate Codex agent. Use a native
+subagent when the host provides one, or a local `codex exec` session. Your job is to:
 
 1. Derive, from first principles, the hard physical ceiling on how fast *this* model can
    run on *this* GPU for *this* workload: the **Speed-of-Light (SOL)**.
 2. Measure where the current implementation stands and attribute the gap.
-3. Continuously dispatch Codex to close the gap, verify every claim independently, detect
-   when Codex drifts off course, and correct it immediately. Codex is always in the loop;
-   you never stop calling it while a credible gap remains.
+3. Dispatch one experiment at a time, independently verify its results, correct drift, and
+   continue within the agreed budget and stop criteria.
+
+Resolve `SRE_SKILL_DIR` to the absolute directory containing this file. Run Git and benchmark
+commands from the target inference repository and resolve skill scripts, examples, and templates
+from `SRE_SKILL_DIR`. This also works when the skill is installed outside the target repository.
+
+- For an **estimate**, collect the model configuration, accelerator SKU, precision, and
+  workload shape, then use the calculator in Phase C. The
+  [calculator quickstart](examples/sol-quickstart/README.md) works without GPU access or a worker.
+- For a **measured optimization**, establish the contract and hardware access in Phases A–D,
+  then use the dispatch and independent acceptance procedure in Phase E.
 
 The core discipline is **Speed-of-Light Engineering**: a fusion of
 - **Performance modeling / computer architecture** (roofline model, memory hierarchy,
@@ -33,8 +42,8 @@ it is not yet an optimization; it is a guess.
 
 ## 0. Ground rules (read before doing anything)
 
-- **Physics beats opinions.** Any measured number above SOL is a measurement bug, never a
-  breakthrough. Stop and find the bug.
+- **Physics check.** Quarantine any result that exceeds its documented SOL. Check measurement
+  and token accounting, then verify that the model assumptions and operating point still match.
 - **You own the truth; Codex owns the keyboard.** Codex writes code. *You* run the
   authoritative benchmark and correctness check after every Codex iteration. Never accept
   Codex's self-reported numbers as ground truth.
@@ -47,8 +56,8 @@ it is not yet an optimization; it is a guess.
   attributed.
 - **Ledger everything.** Every iteration is appended to `sre/ledger.jsonl` with
   `scripts/ledger.py`. The ledger is the project memory that survives context resets.
-- **Codex is never idle while a gap remains.** After each verdict (accept, reject, revert),
-  the next Codex task is dispatched in the same turn unless a stop criterion (Section 6) is met.
+- **Continue from evidence.** Dispatch the next hypothesis after each verdict when the scope,
+  environment, and budget still permit another iteration.
 
 ---
 
@@ -66,9 +75,12 @@ Collect, or infer and confirm with the user:
 | Objective | maximize tokens/s at TPOT ≤ 30 ms; or minimize single-stream latency | The scalar we optimize |
 | Starting point | from scratch, or existing engine (vLLM, SGLang, TensorRT-LLM, llama.cpp, custom) | Where Codex will work |
 
-Write it to `sre/contract.yaml` using `templates/contract.yaml`. Then copy
-`templates/AGENTS.md` into the target repository root (Codex reads `AGENTS.md`
-automatically) and fill in the protected paths and commands.
+Write it to `sre/contract.yaml` using `templates/contract.yaml`. Merge the relevant instructions
+from `templates/AGENTS.md` into the target repository's `AGENTS.md`, preserving existing
+guidance. Fill in the commands and version the protected paths in `sre/protected.txt`
+using `templates/protected.txt`. Keep `sre/runs/` ignored in the target repository.
+Set the iteration and wall-time budgets from the request. For a single experiment, set
+`max_iterations: 1`.
 
 ---
 
@@ -96,14 +108,16 @@ Details: `references/02-hardware-characterization.md`.
 Run the calculator. It accepts a raw HF `config.json`:
 
 ```bash
-python3 scripts/sol_calculator.py \
+python3 "$SRE_SKILL_DIR/scripts/sol_calculator.py" \
   --model path/to/config.json \
-  --gpu H100-SXM5-80GB [--measured sre/hardware_measured.json] \
+  --gpu H100-SXM5-80GB \
   --weight-bits 16 --kv-bits 16 --tp 1 \
   --prompt-len 2048 --gen-len 512 \
   --batch-sweep 1,8,32,64,128,256 --tpot-slo-ms 30 \
   --json sre/sol.json
 ```
+
+Add `--measured sre/hardware_measured.json` after characterizing achievable ceilings.
 
 It reports, for prefill and for decode at each batch size: FLOPs, bytes moved, arithmetic
 intensity, the binding resource, the lower bound on time, the upper bound on tokens/s,
@@ -138,11 +152,11 @@ prefill, but set it per case).
 ## 4. Phase D: Baseline and gap attribution
 
 1. Have Codex create (or adapt) a **frozen benchmark harness** `sre/bench/` that outputs
-   one JSON line: `{metric, value, unit, tokens, wall_s, p50_tpot_ms, p99_tpot_ms, ttft_ms,
+   one JSON line: `{metric, value, unit, tokens, wall_s, p50_tpot_ms, p99_tpot_ms, p99_ttft_ms,
    gpu_clock_mhz, commit}`, plus a **frozen correctness check** `sre/check/` comparing
    against a reference implementation within the contract tolerance.
-2. Once they pass your review, mark them **protected** in `AGENTS.md`. From that point on
-   Codex may not edit them (enforced by `scripts/guard.py`).
+2. Once they pass your review, freeze them in the base commit. List their paths in
+   `sre/protected.txt` and tell the implementation agent what it may edit.
 3. Measure the baseline yourself (`references/07-measurement-protocol.md`: warmup, ≥ 5
    repetitions, report median and spread, pin clocks if allowed, idle GPU).
 4. Profile (Nsight Systems / Nsight Compute / rocprof / torch profiler) and build the
@@ -151,9 +165,13 @@ prefill, but set it per case).
    candidate optimization with a known maximum payoff.
 
 ```bash
-python3 scripts/ledger.py init --sol sre/sol.json --metric decode_tok_s --target-frac 0.85
-python3 scripts/ledger.py add --label baseline --value 1234.5 --commit $(git rev-parse --short HEAD) --verdict baseline
+python3 "$SRE_SKILL_DIR/scripts/ledger.py" init --sol sre/sol.json --metric decode_tok_s --target-frac 0.85
+python3 "$SRE_SKILL_DIR/scripts/ledger.py" add --label baseline --runs 1230,1233,1234.5,1236,1239 \
+  --commit "$(git rev-parse HEAD)" --verdict baseline
 ```
+
+Use `--sol-value` for objectives or fixed operating points outside the calculator's selected
+decode point. Use repeated baseline measurements or an observed `--noise` floor.
 
 ---
 
@@ -166,43 +184,26 @@ Read `references/05-codex-orchestration.md` before the first dispatch, and
 
 ```
 ┌─► PLAN      pick the largest remaining gap bar; write ONE hypothesis with predicted gain
-│   DISPATCH  scripts/codex_task.sh  (fresh session per hypothesis, or resume for follow-ups)
-│   GUARD     scripts/guard.py       (protected paths, contract, diff scope)
-│   VERIFY    run correctness check, then the authoritative benchmark, yourself
-│   PHYSICS   scripts/ledger.py add  (flags > SOL as IMPOSSIBLE, regressions, noise-level wins)
-│   VERDICT   accept → commit + update waterfall
-│             reject → git restore, record why
-│             drift  → scripts/codex_correct.sh with a correction (templates/codex_correction.md)
+│   DISPATCH  give a fresh Codex worker one task and an isolated candidate worktree
+│   GUARD     check the completed candidate against its pinned base and task scope
+│   VERIFY    run the frozen correctness check, then the authoritative benchmark
+│   VERDICT   accept → record tested commit in ledger, promote candidate, update waterfall
+│             reject → record evidence and keep the last accepted commit
+│             drift  → give the same worker a bounded correction for the same hypothesis
 └── NEXT      dispatch the next task immediately unless a stop criterion holds
 ```
 
 ### 5.2 Dispatching Codex
 
-```bash
-scripts/codex_task.sh --repo /path/to/engine --task sre/tasks/007-fuse-rmsnorm-qkv.md \
-  [--model "$SRE_CODEX_MODEL"] [--effort high] [--sandbox danger-full-access]
-```
+When the host provides native Codex subagents, spawn a worker, wait for completion, then use
+that worker for same-hypothesis follow-ups. Pass the absolute worktree path, pinned base, and
+completed `templates/codex_task.md`. The worker edits only its assigned scope.
 
-**Codex runs without a sandbox by default** (`danger-full-access`, i.e.
-`--dangerously-bypass-approvals-and-sandbox`). Codex must compile and time kernels on the GPU
-itself to iterate, and Codex's sandboxes hide the GPU (macOS seatbelt shows 0 Metal devices;
-Linux sandboxes can block `/dev/nvidia*`). Compensating controls are mandatory: work only on a
-dedicated branch, keep the guard + authoritative measurement after every task, and tell the user
-at the start of the loop that Codex runs unsandboxed in that repo. Use `--sandbox workspace-write`
-(or `SRE_CODEX_SANDBOX=workspace-write`) when the user asks for it or the machine is shared.
-
-The wrapper runs `codex exec --json`, stores the event stream, the final message and the
-session id under `sre/runs/<timestamp>-<task>/`, and prints the session id. Follow-ups and
-corrections resume the *same* session so Codex keeps its context:
-
-```bash
-scripts/codex_correct.sh --run sre/runs/<id> --message sre/tasks/007-correction-1.md
-```
-
-Every task prompt is built from `templates/codex_task.md` and must contain: the SOL context
-and current gap, the single hypothesis, the predicted gain and how it follows from the
-model, the exact files in scope, the protected files, the commands to build and to run the
-quick self-check, the acceptance criteria, and the required report format.
+Otherwise dispatch with `codex_task.sh` and resume with `codex_correct.sh`. The CLI worker uses
+`workspace-write` by default. If the worker cannot access the GPU, the supervisor can run those
+commands and return the evidence. An explicitly authorized CLI worker on an isolated machine can
+use `--sandbox danger-full-access`. See
+[dispatch, permissions, and recovery](references/05-codex-orchestration.md) for both paths.
 
 ### 5.3 Prioritization (largest expected gain per unit of risk first)
 
@@ -226,8 +227,11 @@ Default order for decode-dominated serving (details and the full lever catalog:
 
 ### 5.4 Verdict rules
 
-- Accept only if correctness passes **and** the improvement exceeds 3× the run-to-run
-  noise (the ledger computes this) **and** the guard is clean.
+- Inspect the guard's JSON verdict. Resolve any `REVIEW` finding and rerun the guard with
+  a documented, narrow exception if justified. `VIOLATION` blocks the candidate.
+- Accept only with a `CLEAN` scope review, passing correctness and SLOs, and improvement
+  exceeding 3× the measured noise floor. The ledger also checks for regressions and above-SOL
+  results before accepting. Run authoritative measurements serially on each device.
 - If the measured gain is < 30% of the predicted gain, require an explanation before
   building on it: the model of the gap was wrong and must be fixed first.
 - Revert immediately on any correctness failure. Do not let Codex "fix forward" a broken
@@ -282,7 +286,7 @@ immediately**: correction is a turn of the loop, not a pause.
 | `references/02-hardware-characterization.md` | Datasheet vs achievable, microbenchmarks, clocks, power |
 | `references/03-workload-model.md` | Prefill/decode, KV math, attention variants, MoE, long context, multi-GPU |
 | `references/04-optimization-playbook.md` | The lever catalog with expected gains and pitfalls |
-| `references/05-codex-orchestration.md` | How to drive the local Codex CLI: sessions, prompts, sandbox, cadence |
+| `references/05-codex-orchestration.md` | Native and CLI dispatch, sandbox, acceptance and recovery |
 | `references/06-drift-detection.md` | Drift taxonomy, detectors, correction playbook |
 | `references/07-measurement-protocol.md` | Benchmark rigor, noise, statistics, profiling |
 | `scripts/sol_calculator.py` | Speed-of-light calculator (stdlib only) |

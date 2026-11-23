@@ -8,12 +8,12 @@ Correction is part of the loop, never a reason to pause it.
 
 | Detector | How | Fires when |
 |---|---|---|
-| Protected-path guard | `scripts/guard.py --repo R --base <commit> --protect-file sre/protected.txt` | any protected file changed |
+| Protected-path guard | `guard.py --repo R --base COMMIT --protect-file MANIFEST --allow GLOB --json` | `VIOLATION` for protected paths, out-of-scope edits, or diff size. Inspect `REVIEW` flags even when exit status is 0. |
 | Scope guard | `guard.py --allow '<globs>'` | edits outside the task's allowed files |
 | Diff size | `guard.py --max-lines N` | diff ≫ what the hypothesis needs |
 | Red-flag patterns | `guard.py` built-in patterns | added `sleep`, hardcoded results, skipped layers, `torch.manual_seed` changes in check, `atol`/`rtol` edits, `@pytest.mark.skip`, `TODO: restore`, `pip install`, env var hacks |
 | Physics check | `ledger.py add` | measured > achievable SOL (IMPOSSIBLE) |
-| Noise check | `ledger.py add` | gain < 3 × noise (NOISE) |
+| Noise check | `ledger.py add` | gain at or below 3 × noise (NOISE) |
 | Prediction check | ledger predicted vs measured | measured < 30% of predicted (MODEL-MISMATCH) |
 | Stall check | `ledger.py show --stall` | ≥ 3 iterations on one target with < 2% cumulative gain |
 | Correctness | frozen check | any failure |
@@ -23,7 +23,7 @@ Correction is part of the loop, never a reason to pause it.
 ### D1. Benchmark gaming
 *Signals:* protected files edited; fewer iterations; changed shapes; removed warmup; timing
 without device sync; caching outputs across iterations; detecting the benchmark.
-*Action:* hard revert (`git restore --source=<base> -- .`). Resume with a correction that
+*Action:* restore the worker's protected paths in the isolated candidate. Resume with a correction that
 quotes the protected list and the offending hunk. If repeated: new session, and the task
 states "The benchmark is read-only and will be checksummed".
 

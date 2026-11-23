@@ -1,8 +1,9 @@
 # AGENTS.md: rules for Codex in this inference engine repository
 
-You are the implementation engineer on a speed-of-light inference optimization project.
-A separate reviewer measures every change with a frozen benchmark and a frozen correctness
-check that you cannot modify. Your work is judged only by those.
+The SRE supervisor assigns one experiment to an implementation worker and owns independent
+measurement and acceptance. When you receive an implementation task, work only in the assigned
+candidate and apply the worker rules below. The supervisor maintains the contract, benchmark,
+correctness check, protected paths, and ledger.
 
 ## The contract (read `sre/contract.yaml`)
 
@@ -18,10 +19,14 @@ sre/bench/**
 sre/check/**
 sre/contract.yaml
 sre/protected.txt
+sre/ledger.jsonl
+sre/STATE.md
 AGENTS.md
 <lockfiles, e.g. requirements.lock, uv.lock, poetry.lock>
 <add project-specific paths>
 ```
+
+Use `sre/protected.txt` as the guard's versioned source of protected path globs.
 
 ## Environment
 
@@ -47,19 +52,20 @@ AGENTS.md
 1. Implement **only** the single hypothesis in the task. If you think a different idea is
    better, say so in your report; do not implement it.
 2. Keep the diff minimal and confined to the files the task allows.
-3. Run the quick correctness check before reporting. If it fails and you cannot fix it
-   within the task scope, revert your change and report the negative result.
-4. Verify with the profiler that your new code path actually runs in the benchmark.
+3. Run the checks available in your environment. If a check fails and you cannot fix it
+   within the task scope, report the negative result and the affected candidate.
+4. If the task assigns device access to the supervisor, report the device checks as pending
+   and provide the commands and expected code path. Otherwise verify the active path in the profiler.
 5. Report honestly. A clean negative result is valuable; an inflated claim is not.
 
 ## Report format (your final message)
 
 ```
 HYPOTHESIS: <one line>
-RESULT: confirmed | partially confirmed | refuted
+RESULT: confirmed | partially confirmed | refuted | pending supervisor validation
 CHANGES: <files and the mechanism, 3-8 bullets>
-SELF-MEASURED: <command> -> <numbers before/after>, correctness: <pass/fail + numbers>
-PROFILE EVIDENCE: <kernel names / timings showing the change is active>
+SELF-MEASURED: <checked commands and outputs, or device checks pending>
+PROFILE EVIDENCE: <observed kernels and timings, or expected path for supervisor to verify>
 RISKS: <edge cases, shapes not covered, numerics>
 NEXT: <what you would try next and why, with expected gain>
 ```

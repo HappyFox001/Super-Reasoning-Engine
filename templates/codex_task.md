@@ -4,6 +4,10 @@ You are implementing ONE optimization in a performance-critical LLM inference en
 Follow AGENTS.md. A separate reviewer will verify your work with a frozen benchmark and a
 frozen correctness check.
 
+## Candidate
+- Worktree: <absolute path>
+- Base commit: <full SHA>
+
 ## Kind
 <optimization | microbench | harness | investigation>
 
@@ -44,12 +48,14 @@ frozen correctness check.
 - Quick correctness: `<cmd>`
 - Quick bench: `<cmd>`
 - Profile: `<cmd>`
+- GPU commands run by: <worker | supervisor>
 
 ## Acceptance criteria
-1. Quick correctness passes within contract tolerance.
-2. The new path is active in the profiled decode step (show kernel names).
-3. Self-measured gain on the quick bench, stated with command and numbers.
+1. Run the checks available in the worker environment and report the commands and results.
+2. When the worker has GPU access, show the new path in the profile and report quick-benchmark numbers.
+3. When the supervisor owns GPU access, provide the commands, expected active path, and
+   pending device checks. The supervisor independently determines correctness and gain.
 
 ## Report
-Use the report format from AGENTS.md exactly. If the hypothesis is refuted, revert your
-changes and report what you learned.
+Follow the report format in AGENTS.md. If a completed check refutes the hypothesis, report the
+evidence. Leave inconclusive device checks pending for the supervisor.

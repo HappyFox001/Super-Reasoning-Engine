@@ -1,0 +1,392 @@
+{
+  "hardware": {
+    "architecture": "arm64",
+    "macos": "15.6",
+    "gpu": "Apple M2",
+    "gpu_architecture": "applegpu_g14g",
+    "unified_memory_bytes": 25769803776
+  },
+  "software": {
+    "python": "3.12.11",
+    "mlx": "0.31.2",
+    "mlx_lm": "0.31.3",
+    "mlx_lm_source_revision": "ed1fca4cef15a824c5f1702c80f70b4cffc8e4dd",
+    "transformers": "5.24.0"
+  },
+  "workload": {
+    "model": "mlx-community/SmolLM-135M-Instruct-4bit",
+    "model_revision": "642e06afe3fab57fd6cc518637c471af0a569e1e",
+    "weight_bits": 4,
+    "sampling": "greedy, fixed length",
+    "batch_size": 1,
+    "prefix_tokens": 1024,
+    "suffix_token_counts": [
+      12,
+      13,
+      13
+    ],
+    "output_tokens_per_request": 32,
+    "cache_prime_ms": 121.414208,
+    "warmup_repetitions": 3,
+    "repetitions": 7
+  },
+  "quality": {
+    "exact_candidate_token_match": true,
+    "candidate_tokens_compared": 672,
+    "reference_token_sequences": [
+      [
+        378,
+        44588,
+        30,
+        198,
+        17872,
+        42,
+        1812,
+        2380,
+        314,
+        260,
+        5729,
+        1993,
+        1993,
+        47,
+        198,
+        21350,
+        42,
+        378,
+        1993,
+        30,
+        198,
+        17872,
+        42,
+        1812,
+        2380,
+        314,
+        260,
+        5729,
+        1993,
+        1993,
+        1993,
+        47
+      ],
+      [
+        5713,
+        6907,
+        30,
+        198,
+        17872,
+        42,
+        1812,
+        314,
+        260,
+        1462,
+        282,
+        260,
+        5769,
+        47,
+        198,
+        21350,
+        42,
+        5713,
+        6907,
+        30,
+        198,
+        17872,
+        42,
+        1812,
+        5769,
+        314,
+        260,
+        1462,
+        282,
+        47,
+        198,
+        21350
+      ],
+      [
+        378,
+        2539,
+        3935,
+        351,
+        971,
+        2539,
+        30,
+        378,
+        2539,
+        3935,
+        351,
+        971,
+        2539,
+        30,
+        378,
+        2539,
+        3935,
+        351,
+        971,
+        2539,
+        30,
+        378,
+        2539,
+        3935,
+        351,
+        971,
+        2539,
+        30,
+        378,
+        2539,
+        3935,
+        351
+      ]
+    ],
+    "reference_sha256": "190d074f843237868d3e83b7e19a4d22cb8ef4490f5ab4d6f52ce04cf11817d4"
+  },
+  "summary": {
+    "baseline": {
+      "ttft_ms_p50": 128.6288,
+      "request_ms_p50": 250.8514
+    },
+    "prefix_cache": {
+      "ttft_ms_p50": 22.4272,
+      "request_ms_p50": 131.5785
+    }
+  },
+  "raw": [
+    {
+      "order": [
+        "baseline",
+        "prefix_cache"
+      ],
+      "baseline": [
+        {
+          "ttft_ms": 126.537208,
+          "request_ms": 237.004875
+        },
+        {
+          "ttft_ms": 123.730042,
+          "request_ms": 235.131583
+        },
+        {
+          "ttft_ms": 195.111833,
+          "request_ms": 346.033666
+        }
+      ],
+      "prefix_cache": [
+        {
+          "ttft_ms": 22.405166,
+          "request_ms": 131.250375
+        },
+        {
+          "ttft_ms": 22.959083,
+          "request_ms": 135.098041
+        },
+        {
+          "ttft_ms": 22.666875,
+          "request_ms": 131.578542
+        }
+      ]
+    },
+    {
+      "order": [
+        "prefix_cache",
+        "baseline"
+      ],
+      "prefix_cache": [
+        {
+          "ttft_ms": 21.593208,
+          "request_ms": 130.095958
+        },
+        {
+          "ttft_ms": 22.246084,
+          "request_ms": 264.278959
+        },
+        {
+          "ttft_ms": 25.983167,
+          "request_ms": 162.000667
+        }
+      ],
+      "baseline": [
+        {
+          "ttft_ms": 128.628791,
+          "request_ms": 250.661291
+        },
+        {
+          "ttft_ms": 123.711417,
+          "request_ms": 234.774959
+        },
+        {
+          "ttft_ms": 183.451333,
+          "request_ms": 355.399625
+        }
+      ]
+    },
+    {
+      "order": [
+        "baseline",
+        "prefix_cache"
+      ],
+      "baseline": [
+        {
+          "ttft_ms": 191.061875,
+          "request_ms": 325.094917
+        },
+        {
+          "ttft_ms": 124.44925,
+          "request_ms": 235.411083
+        },
+        {
+          "ttft_ms": 127.5635,
+          "request_ms": 239.135375
+        }
+      ],
+      "prefix_cache": [
+        {
+          "ttft_ms": 22.427208,
+          "request_ms": 130.557416
+        },
+        {
+          "ttft_ms": 22.821583,
+          "request_ms": 130.86225
+        },
+        {
+          "ttft_ms": 22.439292,
+          "request_ms": 129.319917
+        }
+      ]
+    },
+    {
+      "order": [
+        "prefix_cache",
+        "baseline"
+      ],
+      "prefix_cache": [
+        {
+          "ttft_ms": 21.130333,
+          "request_ms": 127.452083
+        },
+        {
+          "ttft_ms": 21.977458,
+          "request_ms": 129.100458
+        },
+        {
+          "ttft_ms": 21.897334,
+          "request_ms": 128.21625
+        }
+      ],
+      "baseline": [
+        {
+          "ttft_ms": 126.248667,
+          "request_ms": 238.157
+        },
+        {
+          "ttft_ms": 126.279542,
+          "request_ms": 238.622917
+        },
+        {
+          "ttft_ms": 126.366458,
+          "request_ms": 237.6965
+        }
+      ]
+    },
+    {
+      "order": [
+        "baseline",
+        "prefix_cache"
+      ],
+      "baseline": [
+        {
+          "ttft_ms": 202.820167,
+          "request_ms": 322.773959
+        },
+        {
+          "ttft_ms": 168.71475,
+          "request_ms": 322.623875
+        },
+        {
+          "ttft_ms": 127.37225,
+          "request_ms": 240.790916
+        }
+      ],
+      "prefix_cache": [
+        {
+          "ttft_ms": 22.323041,
+          "request_ms": 134.36025
+        },
+        {
+          "ttft_ms": 29.511166,
+          "request_ms": 140.871791
+        },
+        {
+          "ttft_ms": 23.088708,
+          "request_ms": 133.120208
+        }
+      ]
+    },
+    {
+      "order": [
+        "prefix_cache",
+        "baseline"
+      ],
+      "prefix_cache": [
+        {
+          "ttft_ms": 21.584583,
+          "request_ms": 130.458875
+        },
+        {
+          "ttft_ms": 22.410416,
+          "request_ms": 130.820875
+        },
+        {
+          "ttft_ms": 21.468875,
+          "request_ms": 140.147041
+        }
+      ],
+      "baseline": [
+        {
+          "ttft_ms": 193.659333,
+          "request_ms": 309.138417
+        },
+        {
+          "ttft_ms": 130.699917,
+          "request_ms": 250.851417
+        },
+        {
+          "ttft_ms": 131.998167,
+          "request_ms": 265.322875
+        }
+      ]
+    },
+    {
+      "order": [
+        "baseline",
+        "prefix_cache"
+      ],
+      "baseline": [
+        {
+          "ttft_ms": 128.002125,
+          "request_ms": 344.21275
+        },
+        {
+          "ttft_ms": 151.498667,
+          "request_ms": 268.426625
+        },
+        {
+          "ttft_ms": 159.594083,
+          "request_ms": 291.321167
+        }
+      ],
+      "prefix_cache": [
+        {
+          "ttft_ms": 22.545083,
+          "request_ms": 132.997708
+        },
+        {
+          "ttft_ms": 22.894167,
+          "request_ms": 132.223917
+        },
+        {
+          "ttft_ms": 22.526083,
+          "request_ms": 132.00475
+        }
+      ]
+    }
+  ]
+}

@@ -28,12 +28,21 @@ hardware:
 
 workload:
   mode: "online"             # online | offline
+  request_fixture: "<path and content hash, or dataset revision>"
+  seed: 0
+  concurrency: 1
+  batch_size: null           # set for fixed-batch runs, otherwise document the scheduler policy
   prompt_len: {p50: 2048, p90: 6000}
   gen_len: {p50: 512, p90: 1024}
   sampling: "greedy"         # greedy | temperature/top_p values (must be preserved exactly)
   slo:
     tpot_ms_p99: 30
     ttft_ms_p99: 800
+
+validation:
+  build_command: "<command>"
+  correctness_command: "<frozen check command>"
+  benchmark_command: "<frozen benchmark command>"
 
 objective:
   metric: "decode_tok_s"     # the scalar the loop maximizes (or minimizes with lower_is_better)

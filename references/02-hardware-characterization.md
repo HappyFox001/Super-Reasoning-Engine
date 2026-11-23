@@ -64,8 +64,10 @@ Record results in `sre/hardware_measured.json`:
 }
 ```
 
-`sol_calculator.py --measured sre/hardware_measured.json` overrides the datasheet values with
-these to produce the achievable SOL.
+`--measured sre/hardware_measured.json` supplies `hbm_bw_Bps`, `tensor_flops`, and optional
+`link_bw_Bps` overrides for the achievable SOL. The other fields preserve measurement context.
+To model measured fixed overhead or collective latency, pass `--fixed-us` and
+`--allreduce-latency-us` explicitly for the chosen operating point.
 
 ## 4. Stability controls
 

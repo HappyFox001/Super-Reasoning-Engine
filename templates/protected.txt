@@ -1,0 +1,14 @@
+# Add the target engine's lockfiles, measurement inputs, and other protected paths.
+AGENTS.md
+CLAUDE.md
+sre/contract.yaml
+sre/protected.txt
+sre/bench/**
+sre/check/**
+sre/hardware_measured.json
+sre/sol.json
+sre/SOL.md
+sre/ledger.jsonl
+sre/STATE.md
+sre/waterfall.md
+sre/tasks/**

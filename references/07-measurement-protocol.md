@@ -16,7 +16,7 @@ measurement in the loop.
 - Count tokens from the outputs, never from the request parameters.
 - Emit one JSON line per run:
   `{"metric":"decode_tok_s","value":..., "unit":"tok/s","tokens":..., "wall_s":...,
-   "p50_tpot_ms":..., "p99_tpot_ms":..., "ttft_ms":..., "batch":..., "ctx":...,
+   "p50_tpot_ms":..., "p99_tpot_ms":..., "p99_ttft_ms":..., "batch":..., "ctx":...,
    "gpu_clock_mhz":..., "commit":"..."}`
 
 ## 2. The frozen correctness check
