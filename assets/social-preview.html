@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=JetBrains+Mono:wght@400;500&display=block" rel="stylesheet">
+<style>
+  html, body { margin: 0; width: 1280px; height: 640px; background: #0B0D10; overflow: hidden; }
+  body { font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif; color: #E8EAED; position: relative; }
+  .grid { position: absolute; inset: 0; background-image:
+      linear-gradient(#151A20 1px, transparent 1px), linear-gradient(90deg, #151A20 1px, transparent 1px);
+      background-size: 64px 64px; opacity: .55; }
+  .roof { position: absolute; right: 0; top: 0; }
+  .wrap { position: absolute; left: 96px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+  .mark { display: flex; align-items: center; gap: 18px; }
+  .kicker { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 20px; letter-spacing: .14em; color: #8A939E; }
+  h1 { margin: 0; font-size: 92px; font-weight: 600; letter-spacing: -0.035em; line-height: .98; }
+  h1 span { color: #8A939E; }
+  p { margin: 0; font-size: 28px; line-height: 1.4; color: #C9CED4; max-width: 640px; }
+  .chips { display: flex; gap: 12px; margin-top: 8px; }
+  .chip { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 17px; color: #C9CED4; border: 1px solid #2A313A; border-radius: 999px; padding: 8px 16px; }
+  .url { position: absolute; left: 96px; bottom: 44px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 18px; color: #5E6772; }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <svg class="roof" width="560" height="640" viewBox="0 0 560 640" aria-hidden="true">
+    <line x1="60" y1="520" x2="520" y2="520" stroke="#2A313A" stroke-width="3"/>
+    <polyline points="60,520 260,200 520,200" fill="none" stroke="#E8EAED" stroke-width="14" stroke-linecap="square"/>
+    <line x1="260" y1="200" x2="260" y2="520" stroke="#2A313A" stroke-width="2" stroke-dasharray="6 8"/>
+    <circle cx="260" cy="200" r="22" fill="#4DE1FF"/>
+    <circle cx="260" cy="200" r="44" fill="none" stroke="#4DE1FF" stroke-opacity=".25" stroke-width="2"/>
+    <text x="300" y="180" fill="#5E6772" font-family="JetBrains Mono, monospace" font-size="16">compute ceiling</text>
+    <text x="70" y="556" fill="#5E6772" font-family="JetBrains Mono, monospace" font-size="16">arithmetic intensity →</text>
+  </svg>
+  <div class="wrap">
+    <div class="mark">
+      <svg width="44" height="44" viewBox="0 0 64 64" aria-hidden="true"><polyline points="10,52 30,20 54,20" fill="none" stroke="#E8EAED" stroke-width="6" stroke-linecap="square"/><circle cx="30" cy="20" r="6" fill="#4DE1FF"/></svg>
+      <div class="kicker">AGENT SKILL · OPEN SOURCE</div>
+    </div>
+    <h1>Super Reasoning<br><span>Engine</span></h1>
+    <p>Derive the speed-of-light of your model on your GPU, then drive Codex to close the gap.</p>
+    <div class="chips"><div class="chip">roofline</div><div class="chip">information theory</div><div class="chip">codex loop</div></div>
+  </div>
+  <div class="url">github.com/HappyFox001/Super-Reasoning-Engine</div>
+</body>
+</html>
