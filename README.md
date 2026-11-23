@@ -17,6 +17,14 @@
   <a href="#repository-layout">Layout</a>
 </p>
 
+<p align="center">
+  <a href="promo/super-reasoning-engine-promo.mp4">
+    <img src="assets/social-preview.png" width="720" alt="Watch the 30-second Super Reasoning Engine promo">
+  </a>
+  <br>
+  <sub>▶ <a href="promo/super-reasoning-engine-promo.mp4">Watch the 30-second promo</a> (with sound): a live run on laya-mlx, Apple M2</sub>
+</p>
+
 ---
 
 Most inference optimization is folklore: try a flag, try a kernel, see what happens.
